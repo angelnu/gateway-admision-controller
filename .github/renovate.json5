@@ -1,0 +1,12 @@
+{
+  "extends": [
+    "config:base"
+  ],
+  "enabled": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dashboard",
+  // Do not notify on closed unmerged PRs
+  "suppressNotifications": ["prIgnoreNotification"],
+  // Do not rebase PRs
+  "rebaseWhen": "conflicted"
+}

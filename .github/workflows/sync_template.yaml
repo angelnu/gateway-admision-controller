@@ -1,0 +1,38 @@
+name: Sync Template
+
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '0 */6 * * *'
+
+jobs:
+  sync-with-template:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: source
+        repository: k8s-at-home/template-container-image
+        fetch-depth: 1
+    - uses: actions/checkout@v2
+      with:
+        path: target
+        fetch-depth: 1
+    
+    - name: Copy .github folder
+      run: rsync -av --del $GITHUB_WORKSPACE/source/.github/ $GITHUB_WORKSPACE/target/.github/
+
+    - name: Create pull request for synced files
+      uses: peter-evans/create-pull-request@v3
+      with:
+        token: ${{ secrets.WORKFLOW_REPO_SYNC_TOKEN }}
+        branch: sync-with-template
+        path: target
+        title: "[chore] Sync with template [ci-skip]"
+        signoff: true
+        committer: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
+        author: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
+        commit-message: sync with template
+        body: |
+          Signed-off-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+        labels: renovate/template
