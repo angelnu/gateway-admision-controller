@@ -1,6 +1,12 @@
-# template-container-image
+# gateway admision controller
 
-Template for k8s-at-home containers. You can use it to as base to create your container.
+Based on the [k8s-at-home container template](https://github.com/k8s-at-home/template-container-image)
+and the [example for Kubewebhook](https://github.com/slok/k8s-webhook-example/), this
+[admision webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
+changes the default gateway and, optionally, the DNS of processed pods.
+
+This is useful in order to send traffic to a VPN forwarder, traffic scanner, etc instead of using the
+default cluster egress.
 
 The [.github](.github) folder will get PRs from this template so you can apply the latest workflows.
 
@@ -24,4 +30,16 @@ You need to create the following secrets (not needed within the k8s-at-home org 
 
 Check the [Makefile] for other build targets
 
+## How to run
+
+It is expected to be used from within a Helm chart but the binary might also
+be run directly:
+
+1. Run
+    ```bash
+    make run
+    ```
+2. Connect to <host IP>:8080
+
+For more options you might run `make help`
 
