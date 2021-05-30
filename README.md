@@ -14,8 +14,8 @@ The [.github](.github) folder will get PRs from this template so you can apply t
 
 You need to create the following secrets (not needed within the k8s-at-home org - there we use org-wide secrets):
 - WORKFLOW_REPO_SYNC_TOKEN # Needed to do PRs that update the workflows
-- GHCR_USER # Needed to upload container to the Github Container Registry
-- GHCR_TOKEN # Needed to upload container to the Github Container Registry
+- GHCR_USERNAME            # Needed to upload container to the Github Container Registry
+- GHCR_TOKEN               # Needed to upload container to the Github Container Registry
 
 ## How to build
 

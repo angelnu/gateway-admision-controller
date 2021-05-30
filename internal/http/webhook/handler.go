@@ -30,14 +30,16 @@ func (l kubewebhookLogger) SetValuesOnCtx(parent context.Context, values map[str
 
 // allmark sets up the webhook handler for marking all kubernetes resources using Kubewebhook library.
 func (h handler) gatewayPodMutator() (http.Handler, error) {
+
+	logger := kubewebhookLogger{Logger: h.logger.WithKV(log.KV{"lib": "kubewebhook", "webhook": "gatewayPodMutator"})}
+
 	// Create our mutator
-	gwPodMutator, err := gatewayPodMutator.NewGatewayPodMutator(h.gateway, h.keepDNS)
+	gwPodMutator, err := gatewayPodMutator.NewGatewayPodMutator(h.gateway, h.keepGatewayLabel, h.keepGatewayAnnotation, h.keepDNS)
 	if err != nil {
 		return nil, fmt.Errorf("error creating webhook mutator: %w", err)
 	}
 	mt := kwhmutating.MutatorFunc(gwPodMutator.GatewayPodMutator)
 
-	logger := kubewebhookLogger{Logger: h.logger.WithKV(log.KV{"lib": "kubewebhook", "webhook": "gatewayPodMutator"})}
 	wh, err := kwhmutating.NewWebhook(kwhmutating.WebhookConfig{
 		ID:      "gatewayPodMutator",
 		Logger:  logger,

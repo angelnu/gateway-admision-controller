@@ -9,9 +9,11 @@ import (
 
 // Config is the handler configuration.
 type Config struct {
-	Gateway string
-	KeepDNS bool
-	Logger  log.Logger
+	Gateway               string
+	KeepGatewayLabel      string
+	KeepGatewayAnnotation string
+	KeepDNS               bool
+	Logger                log.Logger
 }
 
 func (c *Config) defaults() error {
@@ -27,10 +29,12 @@ func (c *Config) defaults() error {
 }
 
 type handler struct {
-	gateway string
-	keepDNS bool
-	handler http.Handler
-	logger  log.Logger
+	gateway               string
+	keepGatewayLabel      string
+	keepGatewayAnnotation string
+	keepDNS               bool
+	handler               http.Handler
+	logger                log.Logger
 }
 
 // New returns a new webhook handler.
@@ -43,10 +47,12 @@ func New(config Config) (http.Handler, error) {
 	mux := http.NewServeMux()
 
 	h := handler{
-		handler: mux,
-		gateway: config.Gateway,
-		keepDNS: config.KeepDNS,
-		logger:  config.Logger.WithKV(log.KV{"service": "webhook-handler"}),
+		handler:               mux,
+		gateway:               config.Gateway,
+		keepGatewayLabel:      config.KeepGatewayLabel,
+		keepGatewayAnnotation: config.KeepGatewayAnnotation,
+		keepDNS:               config.KeepDNS,
+		logger:                config.Logger.WithKV(log.KV{"service": "webhook-handler"}),
 	}
 
 	// Register all the routes with our router.

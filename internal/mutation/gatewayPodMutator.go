@@ -3,6 +3,7 @@ package gatewayPodMutator
 import (
 	"context"
 	"net"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -17,17 +18,29 @@ type GatewayPodMutator interface {
 }
 
 // NewLabelMarker returns a new marker that will mark with labels.
-func NewGatewayPodMutator(gateway string, keepDNS bool) (GatewayPodMutator, error) {
+func NewGatewayPodMutator(
+	gateway string,
+	keepGatewayLabel string,
+	keepGatewayAnnotation string,
+	keepDNS bool,
+) (GatewayPodMutator, error) {
 	gatewayIPs, error := net.LookupIP(gateway)
 	if error != nil {
 		return nil, error
 	}
-	return gatewayPodMutatorCfg{gatewayIPs: gatewayIPs, keepDNS: keepDNS}, nil
+	return gatewayPodMutatorCfg{
+		gatewayIPs:            gatewayIPs,
+		keepGatewayLabel:      keepGatewayLabel,
+		keepGatewayAnnotation: keepGatewayAnnotation,
+		keepDNS:               keepDNS,
+	}, nil
 }
 
 type gatewayPodMutatorCfg struct {
-	gatewayIPs []net.IP
-	keepDNS    bool
+	gatewayIPs            []net.IP
+	keepGatewayLabel      string
+	keepGatewayAnnotation string
+	keepDNS               bool
 }
 
 func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
@@ -37,15 +50,33 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 		return &kwhmutating.MutatorResult{}, nil
 	}
 
+	//Check if label excludes this pod
+	if val, ok := pod.GetLabels()[cfg.keepGatewayLabel]; cfg.keepGatewayLabel != "" && ok {
+		if val, err := strconv.ParseBool(val); err == nil && val {
+			return &kwhmutating.MutatorResult{
+				MutatedObject: pod,
+			}, nil
+		}
+	}
+
+	//Check if annotations excludes this pod
+	if val, ok := pod.GetAnnotations()[cfg.keepGatewayAnnotation]; cfg.keepGatewayAnnotation != "" && ok {
+		if val, err := strconv.ParseBool(val); err == nil && val {
+			return &kwhmutating.MutatorResult{
+				MutatedObject: pod,
+			}, nil
+		}
+	}
+
 	// Create init container
 	container := corev1.Container{
-		Name:  "addGateway",
-		Image: "alpine",
-		Command: append(
-			strings.Split("ip route add default via", " "),
+		Name:    "add-gateway",
+		Image:   "alpine",
+		Command: []string{"ip"},
+		Args: append(
+			strings.Split("route change default via", " "),
 			cfg.gatewayIPs[0].String(),
 		),
-		// Args:                     []string{},
 		// WorkingDir:               "",
 		// Ports:                    []corev1.ContainerPort{},
 		// EnvFrom:                  []corev1.EnvFromSource{},

@@ -36,7 +36,7 @@ func runApp() error {
 
 	// Set up logger.
 	logrusLog := logrus.New()
-	logrusLogEntry := logrus.NewEntry(logrusLog).WithField("app", "k8s-webhook-example")
+	logrusLogEntry := logrus.NewEntry(logrusLog).WithField("app", "gateway-admision-controller")
 	if cfg.Debug {
 		logrusLogEntry.Logger.SetLevel(logrus.DebugLevel)
 	}
@@ -76,9 +76,10 @@ func runApp() error {
 
 		// Webhook handler.
 		wh, err := webhook.New(webhook.Config{
-			Gateway: cfg.gateway,
-			KeepDNS: cfg.keepDNS,
-			Logger:  logger,
+			Gateway:          cfg.gateway,
+			KeepDNS:          cfg.keepDNS,
+			KeepGatewayLabel: cfg.keepGatewayLabel,
+			Logger:           logger,
 		})
 		if err != nil {
 			return fmt.Errorf("could not create webhooks handler: %w", err)
