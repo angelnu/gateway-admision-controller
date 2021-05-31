@@ -4,23 +4,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/k8s-at-home/gateway-admision-controller/internal/config"
 	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
 )
 
 // Config is the handler configuration.
 type Config struct {
-	Gateway              string
-	SetGatewayLabel      string
-	SetGatewayAnnotation string
-	KeepDNS              bool
-	SetGatewayDefault    bool
-	Logger               log.Logger
+	CmdConfig config.CmdConfig
+	Logger    log.Logger
 }
 
 func (c *Config) defaults() error {
-	if c.Gateway == "" {
-		return fmt.Errorf("gateway is required")
-	}
 
 	if c.Logger == nil {
 		c.Logger = log.Dummy
@@ -30,13 +24,9 @@ func (c *Config) defaults() error {
 }
 
 type handler struct {
-	gateway              string
-	setGatewayLabel      string
-	setGatewayAnnotation string
-	keepDNS              bool
-	setGatewayDefault    bool
-	handler              http.Handler
-	logger               log.Logger
+	handler   http.Handler
+	cmdConfig config.CmdConfig
+	logger    log.Logger
 }
 
 // New returns a new webhook handler.
@@ -49,13 +39,9 @@ func New(config Config) (http.Handler, error) {
 	mux := http.NewServeMux()
 
 	h := handler{
-		handler:              mux,
-		gateway:              config.Gateway,
-		setGatewayLabel:      config.SetGatewayLabel,
-		setGatewayAnnotation: config.SetGatewayAnnotation,
-		keepDNS:              config.KeepDNS,
-		setGatewayDefault:    config.SetGatewayDefault,
-		logger:               config.Logger.WithKV(log.KV{"service": "webhook-handler"}),
+		handler:   mux,
+		cmdConfig: config.CmdConfig,
+		logger:    config.Logger.WithKV(log.KV{"service": "webhook-handler"}),
 	}
 
 	// Register all the routes with our router.

@@ -12,13 +12,9 @@ import (
 	"github.com/oklog/run"
 	"github.com/sirupsen/logrus"
 
+	cmdConfig "github.com/k8s-at-home/gateway-admision-controller/internal/config"
 	"github.com/k8s-at-home/gateway-admision-controller/internal/http/webhook"
 	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
-)
-
-var (
-	// Version is set at compile time.
-	Version = "dev"
 )
 
 type config struct {
@@ -29,7 +25,7 @@ type config struct {
 
 func runApp() error {
 
-	cfg, err := NewCmdConfig()
+	cfg, err := cmdConfig.NewCmdConfig()
 	if err != nil {
 		return fmt.Errorf("could not get commandline configuration: %w", err)
 	}
@@ -43,7 +39,7 @@ func runApp() error {
 	if !cfg.Development {
 		logrusLogEntry.Logger.SetFormatter(&logrus.JSONFormatter{})
 	}
-	logger := log.NewLogrus(logrusLogEntry).WithKV(log.KV{"version": Version})
+	logger := log.NewLogrus(logrusLogEntry).WithKV(log.KV{"version": cmdConfig.Version})
 
 	// Prepare run entrypoints.
 	var g run.Group
@@ -76,12 +72,8 @@ func runApp() error {
 
 		// Webhook handler.
 		wh, err := webhook.New(webhook.Config{
-			Gateway:              cfg.gateway,
-			KeepDNS:              cfg.keepDNS,
-			SetGatewayDefault:    cfg.setGatewayDefault,
-			SetGatewayLabel:      cfg.setGatewayLabel,
-			SetGatewayAnnotation: cfg.setGatewayAnnotation,
-			Logger:               logger,
+			CmdConfig: *cfg,
+			Logger:    logger,
 		})
 		if err != nil {
 			return fmt.Errorf("could not create webhooks handler: %w", err)

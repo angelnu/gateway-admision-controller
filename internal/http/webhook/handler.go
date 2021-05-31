@@ -34,13 +34,7 @@ func (h handler) gatewayPodMutator() (http.Handler, error) {
 	logger := kubewebhookLogger{Logger: h.logger.WithKV(log.KV{"lib": "kubewebhook", "webhook": "gatewayPodMutator"})}
 
 	// Create our mutator
-	gwPodMutator, err := gatewayPodMutator.NewGatewayPodMutator(
-		h.gateway,
-		h.setGatewayLabel,
-		h.setGatewayAnnotation,
-		h.keepDNS,
-		h.setGatewayDefault,
-	)
+	gwPodMutator, err := gatewayPodMutator.NewGatewayPodMutator(h.cmdConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error creating webhook mutator: %w", err)
 	}
