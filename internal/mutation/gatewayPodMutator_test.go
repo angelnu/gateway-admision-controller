@@ -20,6 +20,7 @@ const (
 	testSidecarCmd        = "bla"
 	testSidecarMountPoint = "/mnt"
 	testSidecarConfigmap  = "settings"
+	testDNSPolicy         = "None"
 )
 
 func getExpectedPodSpec(gatewayIP string) corev1.PodSpec {
@@ -38,7 +39,6 @@ func getExpectedPodSpec(gatewayIP string) corev1.PodSpec {
 				},
 			},
 		},
-		DNSPolicy: "None",
 		DNSConfig: &corev1.PodDNSConfig{
 			Nameservers: []string{
 				gatewayIP,
@@ -94,6 +94,12 @@ func getExpectedPodSpec_sidecar(gatewayIP string) corev1.PodSpec {
 		},
 	})
 
+	return spec
+}
+
+func getExpectedPodSpec_DNSPolicy(gatewayIP string) corev1.PodSpec {
+	spec := getExpectedPodSpec(gatewayIP)
+	spec.DNSPolicy = testDNSPolicy
 	return spec
 }
 
@@ -243,6 +249,17 @@ func TestGatewayPodMutator(t *testing.T) {
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
 				Spec: getExpectedPodSpec_sidecar("1.2.3.4"),
+			},
+		},
+		"Gateway IP, DNSPolicy": {
+			cmdConfig: config.CmdConfig{
+				Gateway:           "1.2.3.4",
+				SetGatewayDefault: true,
+				SetDNSPolicy:      testDNSPolicy,
+			},
+			obj: &corev1.Pod{},
+			expObj: &corev1.Pod{
+				Spec: getExpectedPodSpec_DNSPolicy("1.2.3.4"),
 			},
 		},
 	}

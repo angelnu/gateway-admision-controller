@@ -196,7 +196,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 
 		if !cfg.cmdConfig.KeepDNS {
 			//Add DNS
-			pod.Spec.DNSPolicy = "None"
+			pod.Spec.DNSPolicy = corev1.DNSPolicy(cfg.cmdConfig.SetDNSPolicy)
 			pod.Spec.DNSConfig = &corev1.PodDNSConfig{
 				Nameservers: []string{
 					cfg.gatewayIPs[0].String(),
