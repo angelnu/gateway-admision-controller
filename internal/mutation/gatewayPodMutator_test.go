@@ -60,104 +60,112 @@ func TestGatewayPodMutator(t *testing.T) {
 	exampleGatewayNameIPs, _ := net.LookupIP(exampleGatewayName)
 
 	tests := map[string]struct {
-		gateway               string
-		keepGatewayLabel      string
-		keepGatewayAnnotation string
-		keepDNS               bool
-		obj                   metav1.Object
-		expObj                metav1.Object
+		gateway              string
+		setGatewayLabel      string
+		setGatewayAnnotation string
+		keepDNS              bool
+		setGatewayDefault    bool
+		obj                  metav1.Object
+		expObj               metav1.Object
 	}{
 		"Gateway IP - Having a pod, gateway should be added": {
-			gateway: "1.2.3.4",
-			obj:     &corev1.Pod{},
+			gateway:           "1.2.3.4",
+			setGatewayDefault: true,
+			obj:               &corev1.Pod{},
 			expObj: &corev1.Pod{
 				Spec: getExpectedPodSpec("1.2.3.4"),
 			},
 		},
 		"Gateway name - Having a pod, gateway should be added": {
-			gateway: exampleGatewayName,
-			obj:     &corev1.Pod{},
+			gateway:           exampleGatewayName,
+			setGatewayDefault: true,
+			obj:               &corev1.Pod{},
 			expObj: &corev1.Pod{
 				Spec: getExpectedPodSpec(exampleGatewayNameIPs[0].String()),
 			},
 		},
 		"Gateway IP, keepDNS=true - Having a pod, gateway should be added": {
-			gateway: "1.2.3.4",
-			keepDNS: true,
-			obj:     &corev1.Pod{},
+			gateway:           "1.2.3.4",
+			setGatewayDefault: true,
+			keepDNS:           true,
+			obj:               &corev1.Pod{},
 			expObj: &corev1.Pod{
 				Spec: getExpectedPodSpec_keepDNS("1.2.3.4"),
 			},
 		},
-		"Gateway IP, keepGatewayLabel='keepGateway' - it should be a NOP": {
-			gateway:          "1.2.3.4",
-			keepGatewayLabel: "keepGateway",
+		"Gateway IP, setGatewayLabel='setGateway' - it should be a NOP": {
+			gateway:           "1.2.3.4",
+			setGatewayDefault: true,
+			setGatewayLabel:   "setGateway",
 			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"keepGateway": "true",
+						"setGateway": "false",
 					},
 				},
 			},
 			expObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"keepGateway": "true",
+						"setGateway": "false",
 					},
 				},
 			},
 		},
-		"Gateway IP, keepGatewayLabel='keepGateway' - it should set gateway since label is false": {
-			gateway:          "1.2.3.4",
-			keepGatewayLabel: "keepGateway",
+		"Gateway IP, setGatewayLabel='setGateway' - it should set gateway since label is true": {
+			gateway:           "1.2.3.4",
+			setGatewayDefault: true,
+			setGatewayLabel:   "setGateway",
 			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"keepGateway": "false",
+						"setGateway": "true",
 					},
 				},
 			},
 			expObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"keepGateway": "false",
+						"setGateway": "true",
 					},
 				},
 				Spec: getExpectedPodSpec("1.2.3.4"),
 			},
 		},
-		"Gateway IP, keepGatewayAnnotation='keepGateway' - it should be a NOP": {
-			gateway:               "1.2.3.4",
-			keepGatewayAnnotation: "keepGateway",
+		"Gateway IP, setGatewayAnnotation='setGateway' - it should be a NOP": {
+			gateway:              "1.2.3.4",
+			setGatewayDefault:    true,
+			setGatewayAnnotation: "setGateway",
 			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"keepGateway": "true",
+						"setGateway": "false",
 					},
 				},
 			},
 			expObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"keepGateway": "true",
+						"setGateway": "false",
 					},
 				},
 			},
 		},
-		"Gateway IP, keepGatewayAnnotation='keepGateway' - it should set gateway since label is false": {
-			gateway:               "1.2.3.4",
-			keepGatewayAnnotation: "keepGateway",
+		"Gateway IP, setGatewayAnnotation='setGateway' - it should set gateway since label is true": {
+			gateway:              "1.2.3.4",
+			setGatewayDefault:    true,
+			setGatewayAnnotation: "setGateway",
 			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"keepGateway": "false",
+						"setGateway": "true",
 					},
 				},
 			},
 			expObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						"keepGateway": "false",
+						"setGateway": "true",
 					},
 				},
 				Spec: getExpectedPodSpec("1.2.3.4"),
@@ -172,9 +180,10 @@ func TestGatewayPodMutator(t *testing.T) {
 
 			m, err := mutator.NewGatewayPodMutator(
 				test.gateway,
-				test.keepGatewayLabel,
-				test.keepGatewayAnnotation,
+				test.setGatewayLabel,
+				test.setGatewayAnnotation,
 				test.keepDNS,
+				test.setGatewayDefault,
 			)
 			require.NoError(err)
 

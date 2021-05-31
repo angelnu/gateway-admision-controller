@@ -76,10 +76,12 @@ func runApp() error {
 
 		// Webhook handler.
 		wh, err := webhook.New(webhook.Config{
-			Gateway:          cfg.gateway,
-			KeepDNS:          cfg.keepDNS,
-			KeepGatewayLabel: cfg.keepGatewayLabel,
-			Logger:           logger,
+			Gateway:              cfg.gateway,
+			KeepDNS:              cfg.keepDNS,
+			SetGatewayDefault:    cfg.setGatewayDefault,
+			SetGatewayLabel:      cfg.setGatewayLabel,
+			SetGatewayAnnotation: cfg.setGatewayAnnotation,
+			Logger:               logger,
 		})
 		if err != nil {
 			return fmt.Errorf("could not create webhooks handler: %w", err)

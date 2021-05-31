@@ -28,7 +28,7 @@ vet: tidy
 
 # Run
 run: build
-	./app --gateway=1.2.3.4
+	./app --gateway=1.2.3.4 --setGatewayDefault
 
 # usage
 help: build
