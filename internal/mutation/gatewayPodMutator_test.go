@@ -3,7 +3,6 @@ package gatewayPodMutator_test
 import (
 	"context"
 	"net"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,64 +15,98 @@ import (
 )
 
 const (
-	testSidecarImage      = "foo"
-	testSidecarCmd        = "bla"
-	testSidecarMountPoint = "/mnt"
-	testSidecarConfigmap  = "settings"
-	testDNSPolicy         = "None"
+	testGatewayIP           = "1.2.3.4"
+	testGatewayName         = "example.com"
+	testDNSPolicy           = "None"
+	testInitImage           = "initImg"
+	testInitImagePullPol    = "Always"
+	testInitCmd             = "initCmd"
+	testInitMountPoint      = "/media"
+	testSidecarImage        = "sidecarImg"
+	testSidecarImagePullPol = "IfNotPresent"
+	testSidecarCmd          = "sidecarCmd"
+	testSidecarMountPoint   = "/mnt"
+	testConfigmapName       = "settings"
 )
 
-func getExpectedPodSpec(gatewayIP string) corev1.PodSpec {
+func getExpectedPodSpec(gateway string) corev1.PodSpec {
+
+	exampleGatewayNameIPs, _ := net.LookupIP(gateway)
+
 	spec := corev1.PodSpec{
 		InitContainers: []corev1.Container{
 			corev1.Container{
-				Name:    "add-gateway",
-				Image:   "alpine",
-				Command: []string{"ip"},
-				Args: append(
-					strings.Split("route change default via", " "),
-					gatewayIP,
-				),
+				Name:    mutator.GATEWAY_INIT_CONTAINER_NAME,
+				Image:   testInitImage,
+				Command: []string{testInitCmd},
+				Env: []corev1.EnvVar{
+					{
+						Name:  "gateway",
+						Value: gateway,
+					},
+				},
+				ImagePullPolicy: corev1.PullPolicy(testInitImagePullPol),
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &[]bool{true}[0],
+				},
+				VolumeMounts: []corev1.VolumeMount{
+					corev1.VolumeMount{
+						Name:      mutator.GATEWAY_CONFIGMAP_VOLUME_NAME,
+						ReadOnly:  true,
+						MountPath: testInitMountPoint,
+					},
 				},
 			},
 		},
 		DNSConfig: &corev1.PodDNSConfig{
 			Nameservers: []string{
-				gatewayIP,
+				exampleGatewayNameIPs[0].String(),
 			},
 		},
 	}
+
+	spec.Volumes = append(spec.Volumes, corev1.Volume{
+		Name: mutator.GATEWAY_CONFIGMAP_VOLUME_NAME,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: testConfigmapName,
+				},
+				DefaultMode: &mutator.GATEWAY_CONFIGMAP_VOLUME_MODE,
+			},
+		},
+	})
 	return spec
 }
 
-func getExpectedPodSpec_keepDNS(gatewayIP string) corev1.PodSpec {
-	spec := getExpectedPodSpec(gatewayIP)
+func getExpectedPodSpec_keepDNS(gateway string) corev1.PodSpec {
+	spec := getExpectedPodSpec(gateway)
 	spec.DNSPolicy = ""
 	spec.DNSConfig = nil
 	return spec
 }
 
-func getExpectedPodSpec_sidecar(gatewayIP string) corev1.PodSpec {
-	spec := getExpectedPodSpec(gatewayIP)
+func getExpectedPodSpec_sidecar(gateway string) corev1.PodSpec {
+	spec := getExpectedPodSpec(gateway)
 
 	container := corev1.Container{
-		Name:    "gateway-sidecar",
+		Name:    mutator.GATEWAY_SIDECAR_CONTAINER_NAME,
 		Image:   testSidecarImage,
 		Command: []string{testSidecarCmd},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "gateway",
-				Value: gatewayIP,
+				Value: gateway,
 			},
 		},
+		ImagePullPolicy: corev1.PullPolicy(testSidecarImagePullPol),
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: &[]bool{true}[0],
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			corev1.VolumeMount{
-				Name:      mutator.GATEWAY_SIDECAR_VOLUME_NAME,
+				Name:      mutator.GATEWAY_CONFIGMAP_VOLUME_NAME,
+				ReadOnly:  true,
 				MountPath: testSidecarMountPoint,
 			},
 		},
@@ -81,18 +114,6 @@ func getExpectedPodSpec_sidecar(gatewayIP string) corev1.PodSpec {
 
 	//Add container to pod
 	spec.Containers = append(spec.Containers, container)
-
-	spec.Volumes = append(spec.Volumes, corev1.Volume{
-		Name: mutator.GATEWAY_SIDECAR_VOLUME_NAME,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: testSidecarConfigmap,
-				},
-				DefaultMode: &mutator.GATEWAY_SIDECAR_VOLUME_MODE,
-			},
-		},
-	})
 
 	return spec
 }
@@ -105,9 +126,6 @@ func getExpectedPodSpec_DNSPolicy(gatewayIP string) corev1.PodSpec {
 
 func TestGatewayPodMutator(t *testing.T) {
 
-	exampleGatewayName := "example.com"
-	exampleGatewayNameIPs, _ := net.LookupIP(exampleGatewayName)
-
 	tests := map[string]struct {
 		cmdConfig config.CmdConfig
 		obj       metav1.Object
@@ -115,46 +133,66 @@ func TestGatewayPodMutator(t *testing.T) {
 	}{
 		"Gateway IP - Having a pod, gateway should be added": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           "1.2.3.4",
+				Gateway:           testGatewayIP,
 				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
 			},
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
-				Spec: getExpectedPodSpec("1.2.3.4"),
+				Spec: getExpectedPodSpec(testGatewayIP),
 			},
 		},
 		"Gateway name - Having a pod, gateway should be added": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           exampleGatewayName,
+				Gateway:           testGatewayName,
 				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
 			},
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
-				Spec: getExpectedPodSpec(exampleGatewayNameIPs[0].String()),
+				Spec: getExpectedPodSpec(testGatewayName),
 			},
 		},
 		"Gateway IP, keepDNS=true - Having a pod, gateway should be added": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           "1.2.3.4",
+				Gateway:           testGatewayIP,
 				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
 				KeepDNS:           true,
 			},
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
-				Spec: getExpectedPodSpec_keepDNS("1.2.3.4"),
+				Spec: getExpectedPodSpec_keepDNS(testGatewayIP),
 			},
 		},
 		"Gateway IP, no SetGatewayDefault - it should be a NOP": {
 			cmdConfig: config.CmdConfig{
-				Gateway: "1.2.3.4",
+				Gateway: testGatewayIP,
 			},
 			obj:    &corev1.Pod{},
 			expObj: &corev1.Pod{},
 		},
 		"Gateway IP, setGatewayLabel='setGateway' - it should be a NOP": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           "1.2.3.4",
+				Gateway:           testGatewayIP,
 				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
 				SetGatewayLabel:   "setGateway",
 			},
 			obj: &corev1.Pod{
@@ -174,8 +212,13 @@ func TestGatewayPodMutator(t *testing.T) {
 		},
 		"Gateway IP, setGatewayLabel='setGateway' - it should set gateway since label is true": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           "1.2.3.4",
+				Gateway:           testGatewayIP,
 				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
 				SetGatewayLabel:   "setGateway",
 			},
 			obj: &corev1.Pod{
@@ -191,13 +234,18 @@ func TestGatewayPodMutator(t *testing.T) {
 						"setGateway": "true",
 					},
 				},
-				Spec: getExpectedPodSpec("1.2.3.4"),
+				Spec: getExpectedPodSpec(testGatewayIP),
 			},
 		},
 		"Gateway IP, setGatewayAnnotation='setGateway' - it should be a NOP": {
 			cmdConfig: config.CmdConfig{
-				Gateway:              "1.2.3.4",
+				Gateway:              testGatewayIP,
 				SetGatewayDefault:    true,
+				InitImage:            testInitImage,
+				InitCmd:              testInitCmd,
+				InitImagePullPol:     testInitImagePullPol,
+				InitMountPoint:       testInitMountPoint,
+				ConfigmapName:        testConfigmapName,
 				SetGatewayAnnotation: "setGateway",
 			},
 			obj: &corev1.Pod{
@@ -217,8 +265,13 @@ func TestGatewayPodMutator(t *testing.T) {
 		},
 		"Gateway IP, setGatewayAnnotation='setGateway' - it should set gateway since label is true": {
 			cmdConfig: config.CmdConfig{
-				Gateway:              "1.2.3.4",
+				Gateway:              testGatewayIP,
 				SetGatewayDefault:    true,
+				InitImage:            testInitImage,
+				InitCmd:              testInitCmd,
+				InitImagePullPol:     testInitImagePullPol,
+				InitMountPoint:       testInitMountPoint,
+				ConfigmapName:        testConfigmapName,
 				SetGatewayAnnotation: "setGateway",
 			},
 			obj: &corev1.Pod{
@@ -234,32 +287,42 @@ func TestGatewayPodMutator(t *testing.T) {
 						"setGateway": "true",
 					},
 				},
-				Spec: getExpectedPodSpec("1.2.3.4"),
+				Spec: getExpectedPodSpec(testGatewayIP),
 			},
 		},
 		"Gateway IP, sidecar cmd": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           "1.2.3.4",
-				SetGatewayDefault: true,
-				SidecarImage:      testSidecarImage,
-				SidecarCmd:        testSidecarCmd,
-				SidecarMountPoint: testSidecarMountPoint,
-				SidecarConfigmap:  testSidecarConfigmap,
+				Gateway:             testGatewayIP,
+				SetGatewayDefault:   true,
+				InitImage:           testInitImage,
+				InitCmd:             testInitCmd,
+				InitImagePullPol:    testInitImagePullPol,
+				InitMountPoint:      testInitMountPoint,
+				ConfigmapName:       testConfigmapName,
+				SidecarImage:        testSidecarImage,
+				SidecarCmd:          testSidecarCmd,
+				SidecarImagePullPol: testSidecarImagePullPol,
+				SidecarMountPoint:   testSidecarMountPoint,
 			},
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
-				Spec: getExpectedPodSpec_sidecar("1.2.3.4"),
+				Spec: getExpectedPodSpec_sidecar(testGatewayIP),
 			},
 		},
 		"Gateway IP, DNSPolicy": {
 			cmdConfig: config.CmdConfig{
-				Gateway:           "1.2.3.4",
+				Gateway:           testGatewayIP,
 				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
 				SetDNSPolicy:      testDNSPolicy,
 			},
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
-				Spec: getExpectedPodSpec_DNSPolicy("1.2.3.4"),
+				Spec: getExpectedPodSpec_DNSPolicy(testGatewayIP),
 			},
 		},
 	}

@@ -3,7 +3,8 @@
 Based on the [k8s-at-home container template](https://github.com/k8s-at-home/template-container-image)
 and the [example for Kubewebhook](https://github.com/slok/k8s-webhook-example/), this
 [admision webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
-changes the default gateway and, optionally, the DNS of processed pods.
+changes the default gateway and, optionally, the DNS of processed pods. It does so by adding an
+init container and a sidecar. The sidecar is used in case the IP of the gateway changes.
 
 This is useful in order to send traffic to a VPN forwarder, traffic scanner, etc instead of using the
 default cluster egress.

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,11 +16,13 @@ import (
 )
 
 const (
-	GATEWAY_SIDECAR_VOLUME_NAME = "gateway-sidecar-configmap"
+	GATEWAY_INIT_CONTAINER_NAME    = "gateway-init"
+	GATEWAY_SIDECAR_CONTAINER_NAME = "gateway-sidecar"
+	GATEWAY_CONFIGMAP_VOLUME_NAME  = "gateway-configmap"
 )
 
 var (
-	GATEWAY_SIDECAR_VOLUME_MODE int32 = 0777
+	GATEWAY_CONFIGMAP_VOLUME_MODE int32 = 0777
 )
 
 type GatewayPodMutator interface {
@@ -40,21 +41,13 @@ func NewGatewayPodMutator(cmdConfig config.CmdConfig) (GatewayPodMutator, error)
 		return nil, error
 	}
 
-	if cmdConfig.InitImage == "" {
-		cmdConfig.InitImage = "alpine"
-	}
-
-	if cmdConfig.SidecarImage == "" {
-		cmdConfig.SidecarImage = "alpine"
-	}
-
 	return gatewayPodMutatorCfg{
 		cmdConfig:  cmdConfig,
 		gatewayIPs: gatewayIPs,
 	}, nil
 }
 
-func (cfg gatewayPodMutatorCfg) getGatwayIP() (string, error) {
+func (cfg gatewayPodMutatorCfg) getGatewayIP() (string, error) {
 	gatewayIPs, error := net.LookupIP(cfg.cmdConfig.Gateway)
 	if error != nil {
 		return "", error
@@ -94,70 +87,39 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 	}
 
 	if setGateway {
-		// Create init container
-		container := corev1.Container{
-			Name:    "add-gateway",
-			Image:   cfg.cmdConfig.InitImage,
-			Command: []string{"ip"},
-			Args: append(
-				strings.Split("route change default via", " "),
-				cfg.gatewayIPs[0].String(),
-			),
-			// WorkingDir:               "",
-			// Ports:                    []corev1.ContainerPort{},
-			// EnvFrom:                  []corev1.EnvFromSource{},
-			// Env:                      []corev1.EnvVar{},
-			// Resources:                corev1.ResourceRequirements{},
-			// VolumeMounts:             []corev1.VolumeMount{},
-			// VolumeDevices:            []corev1.VolumeDevice{},
-			// LivenessProbe:            &corev1.Probe{},
-			// ReadinessProbe:           &corev1.Probe{},
-			// StartupProbe:             &corev1.Probe{},
-			// Lifecycle:                &corev1.Lifecycle{},
-			// TerminationMessagePath:   "",
-			// TerminationMessagePolicy: "",
-			// ImagePullPolicy:          "",
-			SecurityContext: &corev1.SecurityContext{
-				Privileged: &[]bool{true}[0],
-			},
-			// Stdin:                    false,
-			// StdinOnce:                false,
-			// TTY:                      false,
-		}
 
-		//Add  initContainer to pod
-		pod.Spec.InitContainers = append(pod.Spec.InitContainers, container)
+		if cfg.cmdConfig.InitImage != "" {
 
-		if cfg.cmdConfig.SidecarCmd != "" {
-			// Create volume mount
 			var volumeMount []corev1.VolumeMount
-			if cfg.cmdConfig.SidecarMountPoint != "" {
+			if cfg.cmdConfig.InitMountPoint != "" {
+				// Create volume mount
 				volumeMount = []corev1.VolumeMount{
 					corev1.VolumeMount{
-						Name:      GATEWAY_SIDECAR_VOLUME_NAME,
-						ReadOnly:  false,
-						MountPath: cfg.cmdConfig.SidecarMountPoint,
+						Name:      GATEWAY_CONFIGMAP_VOLUME_NAME,
+						ReadOnly:  true,
+						MountPath: cfg.cmdConfig.InitMountPoint,
 						// SubPath:          "",
 						// MountPropagation: &"",
 						// SubPathExpr:      "",
 					},
 				}
 			}
-			// Create sidecar container
+
+			// Create init container
 			container := corev1.Container{
-				Name:    "gateway-sidecar",
-				Image:   cfg.cmdConfig.SidecarImage,
-				Command: []string{cfg.cmdConfig.SidecarCmd},
+				Name:    GATEWAY_INIT_CONTAINER_NAME,
+				Image:   cfg.cmdConfig.InitImage,
+				Command: []string{cfg.cmdConfig.InitCmd},
+				// Args:                     []string{},
+				// WorkingDir:               "",
+				// Ports:                    []corev1.ContainerPort{},
+				// EnvFrom:                  []corev1.EnvFromSource{},
 				Env: []corev1.EnvVar{
 					{
 						Name:  "gateway",
 						Value: cfg.cmdConfig.Gateway,
 					},
 				},
-				// WorkingDir:               "",
-				// Ports:                    []corev1.ContainerPort{},
-				// EnvFrom:                  []corev1.EnvFromSource{},
-				// Env:                      []corev1.EnvVar{},
 				// Resources:                corev1.ResourceRequirements{},
 				VolumeMounts: volumeMount,
 				// VolumeDevices:            []corev1.VolumeDevice{},
@@ -167,7 +129,61 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 				// Lifecycle:                &corev1.Lifecycle{},
 				// TerminationMessagePath:   "",
 				// TerminationMessagePolicy: "",
-				// ImagePullPolicy:          "",
+				ImagePullPolicy: corev1.PullPolicy(cfg.cmdConfig.InitImagePullPol),
+				SecurityContext: &corev1.SecurityContext{
+					Privileged: &[]bool{true}[0],
+				},
+				// Stdin:                    false,
+				// StdinOnce:                false,
+				// TTY:                      false,
+			}
+
+			//Add  initContainer to pod
+			pod.Spec.InitContainers = append(pod.Spec.InitContainers, container)
+		}
+
+		if cfg.cmdConfig.SidecarImage != "" {
+
+			var volumeMount []corev1.VolumeMount
+			if cfg.cmdConfig.SidecarMountPoint != "" {
+				// Create volume mount
+				volumeMount = []corev1.VolumeMount{
+					corev1.VolumeMount{
+						Name:      GATEWAY_CONFIGMAP_VOLUME_NAME,
+						ReadOnly:  true,
+						MountPath: cfg.cmdConfig.SidecarMountPoint,
+						// SubPath:          "",
+						// MountPropagation: &"",
+						// SubPathExpr:      "",
+					},
+				}
+			}
+
+			// Create init container
+			container := corev1.Container{
+				Name:    GATEWAY_SIDECAR_CONTAINER_NAME,
+				Image:   cfg.cmdConfig.SidecarImage,
+				Command: []string{cfg.cmdConfig.SidecarCmd},
+				// Args:                     []string{},
+				// WorkingDir:               "",
+				// Ports:                    []corev1.ContainerPort{},
+				// EnvFrom:                  []corev1.EnvFromSource{},
+				Env: []corev1.EnvVar{
+					{
+						Name:  "gateway",
+						Value: cfg.cmdConfig.Gateway,
+					},
+				},
+				// Resources:                corev1.ResourceRequirements{},
+				VolumeMounts: volumeMount,
+				// VolumeDevices:            []corev1.VolumeDevice{},
+				// LivenessProbe:            &corev1.Probe{},
+				// ReadinessProbe:           &corev1.Probe{},
+				// StartupProbe:             &corev1.Probe{},
+				// Lifecycle:                &corev1.Lifecycle{},
+				// TerminationMessagePath:   "",
+				// TerminationMessagePolicy: "",
+				ImagePullPolicy: corev1.PullPolicy(cfg.cmdConfig.SidecarImagePullPol),
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &[]bool{true}[0],
 				},
@@ -180,27 +196,30 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 			pod.Spec.Containers = append(pod.Spec.Containers, container)
 		}
 
-		if cfg.cmdConfig.SidecarConfigmap != "" {
+		if cfg.cmdConfig.ConfigmapName != "" {
 			pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-				Name: GATEWAY_SIDECAR_VOLUME_NAME,
+				Name: GATEWAY_CONFIGMAP_VOLUME_NAME,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: cfg.cmdConfig.SidecarConfigmap,
+							Name: cfg.cmdConfig.ConfigmapName,
 						},
-						DefaultMode: &GATEWAY_SIDECAR_VOLUME_MODE,
+						DefaultMode: &GATEWAY_CONFIGMAP_VOLUME_MODE,
 					},
 				},
 			})
 		}
 
 		if !cfg.cmdConfig.KeepDNS {
+
+			gatewayIP, error := cfg.getGatewayIP()
+			if error != nil {
+				return nil, error
+			}
 			//Add DNS
 			pod.Spec.DNSPolicy = corev1.DNSPolicy(cfg.cmdConfig.SetDNSPolicy)
 			pod.Spec.DNSConfig = &corev1.PodDNSConfig{
-				Nameservers: []string{
-					cfg.gatewayIPs[0].String(),
-				},
+				Nameservers: []string{gatewayIP},
 				// Searches: []string{},
 				// Options:  []corev1.PodDNSConfigOption{},
 			}
