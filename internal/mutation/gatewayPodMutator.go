@@ -4,10 +4,12 @@ import (
 	"context"
 	"net"
 	"strconv"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/fiskeben/resolv"
 	kwhmodel "github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
 
@@ -109,6 +111,12 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 			}
 		}
 
+		k8s_DNS_config, error := resolv.Config()
+		if error != nil {
+			return nil, error
+		}
+		k8s_DNS_ips := strings.Join(k8s_DNS_config.Nameservers, " ")
+
 		if cfg.cmdConfig.DNSPolicy != "" {
 			//Add DNSPolicy
 			pod.Spec.DNSPolicy = corev1.DNSPolicy(cfg.cmdConfig.DNSPolicy)
@@ -152,6 +160,10 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 					{
 						Name:  "DNS_ip",
 						Value: DNS_IP,
+					},
+					{
+						Name:  "K8S_DNS_ips",
+						Value: k8s_DNS_ips,
 					},
 				},
 				// Resources:                corev1.ResourceRequirements{},
@@ -219,6 +231,10 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 					{
 						Name:  "DNS_ip",
 						Value: DNS_IP,
+					},
+					{
+						Name:  "K8S_DNS_ips",
+						Value: k8s_DNS_ips,
 					},
 				},
 				// Resources:                corev1.ResourceRequirements{},

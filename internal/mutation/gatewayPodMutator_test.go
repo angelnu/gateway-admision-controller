@@ -3,8 +3,10 @@ package gatewayPodMutator_test
 import (
 	"context"
 	"net"
+	"strings"
 	"testing"
 
+	"github.com/fiskeben/resolv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +41,9 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 		DNS_IP = DNS_IP_obj[0].String()
 	}
 
+	k8s_DNS_config, _ := resolv.Config()
+	k8s_DNS_ips := strings.Join(k8s_DNS_config.Nameservers, " ")
+
 	var initContainers []corev1.Container
 	if initImage != "" {
 		initContainers = append(initContainers, corev1.Container{
@@ -57,6 +62,10 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 				{
 					Name:  "DNS_ip",
 					Value: DNS_IP,
+				},
+				{
+					Name:  "K8S_DNS_ips",
+					Value: k8s_DNS_ips,
 				},
 			},
 			ImagePullPolicy: corev1.PullPolicy(testInitImagePullPol),
@@ -96,6 +105,10 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 				{
 					Name:  "DNS_ip",
 					Value: DNS_IP,
+				},
+				{
+					Name:  "K8S_DNS_ips",
+					Value: k8s_DNS_ips,
 				},
 			},
 			ImagePullPolicy: corev1.PullPolicy(testSidecarImagePullPol),
