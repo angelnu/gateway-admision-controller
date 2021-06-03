@@ -51,6 +51,7 @@ jobs:
           echo ::set-output name=cache_from::"type=registry,ref=${REGISTRY_IMAGE}:buildcache"
           echo ::set-output name=cache_to::"type=registry,ref=${REGISTRY_IMAGE}:buildcache,mode=max"
         fi
+        echo ::set-output name=github_server_url::"${GITHUB_SERVER_URL}"
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
@@ -84,7 +85,7 @@ jobs:
         push: ${{ steps.prep.outputs.push }}
         tags: ${{ steps.prep.outputs.tags }}
         build-args: |
-          IMAGE_SOURCE=$GITHUB_SERVER_URL/${{ github.repository }}
+          IMAGE_SOURCE=${{ steps.prep.outputs.github_server_url }}/${{ github.repository }}
         cache-from: ${{ steps.prep.outputs.cache_from }}
         cache-to: ${{ steps.prep.outputs.cache_to }}
 
