@@ -3,7 +3,6 @@ module github.com/k8s-at-home/gateway-admision-controller
 go 1.16
 
 require (
-	github.com/fiskeben/resolv v0.0.0-20200701110541-c310f0881e4b
 	github.com/oklog/run v1.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slok/kubewebhook/v2 v2.1.0

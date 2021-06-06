@@ -9,11 +9,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/fiskeben/resolv"
+	"github.com/k8s-at-home/gateway-admision-controller/internal/resolv"
 	kwhmodel "github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
 
 	"github.com/k8s-at-home/gateway-admision-controller/internal/config"
+	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
 )
 
 const (
@@ -31,7 +32,9 @@ type GatewayPodMutator interface {
 }
 
 // NewLabelMarker returns a new marker that will mark with labels.
-func NewGatewayPodMutator(cmdConfig config.CmdConfig) (GatewayPodMutator, error) {
+func NewGatewayPodMutator(cmdConfig config.CmdConfig, logger log.Logger) (GatewayPodMutator, error) {
+
+	logger.Infof("Command config is %#v", cmdConfig)
 
 	if cmdConfig.Gateway != "" {
 		//Check we got a valid Gateway
@@ -53,14 +56,24 @@ func NewGatewayPodMutator(cmdConfig config.CmdConfig) (GatewayPodMutator, error)
 	if error != nil {
 		return nil, error
 	}
+	logger.Infof("Current DNS config is %#v", DNS_config)
+
+	podDNSConfigOptions := make([]corev1.PodDNSConfigOption, 0)
+	for i := range DNS_config.Options {
+		podDNSConfigOptions = append(podDNSConfigOptions, corev1.PodDNSConfigOption{
+			Name:  DNS_config.Options[i].Name,
+			Value: DNS_config.Options[i].Value,
+		})
+	}
 
 	return gatewayPodMutatorCfg{
 		cmdConfig: cmdConfig,
 		staticDNS: corev1.PodDNSConfig{
 			Nameservers: DNS_config.Nameservers,
 			Searches:    DNS_config.Search,
-			//Options:     DNS_config.Options, #Libray does not support it
+			Options:     podDNSConfigOptions,
 		},
+		logger: logger,
 	}, nil
 }
 
@@ -77,6 +90,7 @@ func (cfg gatewayPodMutatorCfg) getDNSIP() (string, error) {
 type gatewayPodMutatorCfg struct {
 	cmdConfig config.CmdConfig
 	staticDNS corev1.PodDNSConfig
+	logger    log.Logger
 }
 
 func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
@@ -128,13 +142,13 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 				copied := cfg.staticDNS.DeepCopy()
 
 				//fix the first search to match the pod namespace
-				firstSearch := copied.Searches[0]
-				if strings.Contains(firstSearch, ".svc.") {
-					firstSearchParts := strings.Split(firstSearch, ".")
-					firstSearchParts[0] = pod.Namespace
-					firstSearch = strings.Join(firstSearchParts, ".")
+				for i := range copied.Searches {
+					searchParts := strings.Split(copied.Searches[i], ".")
+					if len(searchParts) > 2 && searchParts[1] == "svc" {
+						searchParts[0] = pod.Namespace
+						copied.Searches[i] = strings.Join(searchParts, ".")
+					}
 				}
-				copied.Searches[0] = firstSearch
 
 				pod.Spec.DNSConfig.Searches = copied.Searches
 				pod.Spec.DNSConfig.Options = copied.Options
@@ -304,6 +318,9 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 			})
 		}
 	}
+
+	cfg.logger.Infof("Mutated pod %s", pod.Name)
+	cfg.logger.Debugf("%s", pod.String())
 
 	return &kwhmutating.MutatorResult{
 		MutatedObject: pod,

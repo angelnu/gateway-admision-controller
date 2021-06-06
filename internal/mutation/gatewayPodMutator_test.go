@@ -6,14 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fiskeben/resolv"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/k8s-at-home/gateway-admision-controller/internal/config"
+	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
 	mutator "github.com/k8s-at-home/gateway-admision-controller/internal/mutation"
+	"github.com/k8s-at-home/gateway-admision-controller/internal/resolv"
 )
 
 const (
@@ -31,6 +33,7 @@ const (
 	testSidecarCmd          = "sidecarCmd"
 	testSidecarMountPoint   = "/mnt"
 	testConfigmapName       = "settings"
+	testNamespace           = "myNameSpace"
 )
 
 func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, sidecarImage string) corev1.PodSpec {
@@ -43,6 +46,15 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 
 	k8s_DNS_config, _ := resolv.Config()
 	k8s_DNS_ips := strings.Join(k8s_DNS_config.Nameservers, " ")
+
+	//fix the first search to match the pod namespace
+	for i := range k8s_DNS_config.Search {
+		searchParts := strings.Split(k8s_DNS_config.Search[i], ".")
+		if len(searchParts) > 2 && searchParts[1] == "svc" {
+			searchParts[0] = testNamespace
+			k8s_DNS_config.Search[i] = strings.Join(searchParts, ".")
+		}
+	}
 
 	var initContainers []corev1.Container
 	if initImage != "" {
@@ -143,6 +155,15 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 		if testDNSPolicy == "None" {
 			// Copy my own webhook settings
 			spec.DNSConfig.Searches = k8s_DNS_config.Search
+
+			podDNSConfigOptions := make([]corev1.PodDNSConfigOption, 0)
+			for i := range k8s_DNS_config.Options {
+				podDNSConfigOptions = append(podDNSConfigOptions, corev1.PodDNSConfigOption{
+					Name:  k8s_DNS_config.Options[i].Name,
+					Value: k8s_DNS_config.Options[i].Value,
+				})
+			}
+			spec.DNSConfig.Options = podDNSConfigOptions
 		}
 	}
 
@@ -195,7 +216,6 @@ func TestGatewayPodMutator(t *testing.T) {
 		obj       metav1.Object
 		expObj    metav1.Object
 	}{
-
 		"Empty - NOP": {
 			cmdConfig: config.CmdConfig{
 				SetGatewayDefault: true,
@@ -401,7 +421,7 @@ func TestGatewayPodMutator(t *testing.T) {
 				Spec: getExpectedPodSpec_DNSPolicy(testDNSPolicy),
 			},
 		},
-		"DNSPolicy, Gateway IP, init image ": {
+		"DNSPolicy, Gateway IP, init image": {
 			cmdConfig: config.CmdConfig{
 				SetGatewayDefault: true,
 				Gateway:           testGatewayIP,
@@ -413,19 +433,29 @@ func TestGatewayPodMutator(t *testing.T) {
 				ConfigmapName:     testConfigmapName,
 				DNSPolicy:         testDNSPolicy,
 			},
-			obj: &corev1.Pod{},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+				},
+			},
 			expObj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+				},
 				Spec: getExpectedPodSpec_gateway_DNSPolicy(testGatewayIP, testDNSIP, testInitImage, "", testDNSPolicy),
 			},
 		},
 	}
+
+	logrusLog := logrus.New()
+	logrusLogEntry := logrus.NewEntry(logrusLog).WithField("app", "gatewayPodMutator Test")
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			m, err := mutator.NewGatewayPodMutator(test.cmdConfig)
+			m, err := mutator.NewGatewayPodMutator(test.cmdConfig, log.NewLogrus(logrusLogEntry).WithKV(log.KV{"test": name}))
 			require.NoError(err)
 
 			_, err = m.GatewayPodMutator(context.TODO(), nil, test.obj)
