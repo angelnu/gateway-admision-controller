@@ -49,7 +49,19 @@ func NewGatewayPodMutator(cmdConfig config.CmdConfig) (GatewayPodMutator, error)
 		}
 	}
 
-	return gatewayPodMutatorCfg{cmdConfig: cmdConfig}, nil
+	DNS_config, error := resolv.Config()
+	if error != nil {
+		return nil, error
+	}
+
+	return gatewayPodMutatorCfg{
+		cmdConfig: cmdConfig,
+		staticDNS: corev1.PodDNSConfig{
+			Nameservers: DNS_config.Nameservers,
+			Searches:    DNS_config.Search,
+			//Options:     DNS_config.Options, #Libray does not support it
+		},
+	}, nil
 }
 
 func (cfg gatewayPodMutatorCfg) getGatewayIP() (string, error) {
@@ -64,6 +76,7 @@ func (cfg gatewayPodMutatorCfg) getDNSIP() (string, error) {
 
 type gatewayPodMutatorCfg struct {
 	cmdConfig config.CmdConfig
+	staticDNS corev1.PodDNSConfig
 }
 
 func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
@@ -109,13 +122,26 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 				// Searches: []string{},
 				// Options:  []corev1.PodDNSConfigOption{},
 			}
+
+			if cfg.cmdConfig.DNSPolicy == "None" {
+				// Copy my own webhook settings
+				copied := cfg.staticDNS.DeepCopy()
+
+				//fix the first search to match the pod namespace
+				firstSearch := copied.Searches[0]
+				if strings.Contains(firstSearch, ".svc.") {
+					firstSearchParts := strings.Split(firstSearch, ".")
+					firstSearchParts[0] = pod.Namespace
+					firstSearch = strings.Join(firstSearchParts, ".")
+				}
+				copied.Searches[0] = firstSearch
+
+				pod.Spec.DNSConfig.Searches = copied.Searches
+				pod.Spec.DNSConfig.Options = copied.Options
+			}
 		}
 
-		k8s_DNS_config, error := resolv.Config()
-		if error != nil {
-			return nil, error
-		}
-		k8s_DNS_ips := strings.Join(k8s_DNS_config.Nameservers, " ")
+		k8s_DNS_ips := strings.Join(cfg.staticDNS.Nameservers, " ")
 
 		if cfg.cmdConfig.DNSPolicy != "" {
 			//Add DNSPolicy

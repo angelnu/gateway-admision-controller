@@ -135,6 +135,17 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 		Containers:     containers,
 	}
 
+	if DNS != "" {
+		spec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{DNS_IP},
+		}
+
+		if testDNSPolicy == "None" {
+			// Copy my own webhook settings
+			spec.DNSConfig.Searches = k8s_DNS_config.Search
+		}
+	}
+
 	if initImage != "" || sidecarImage != "" {
 		spec.Volumes = append(spec.Volumes, corev1.Volume{
 			Name: mutator.GATEWAY_CONFIGMAP_VOLUME_NAME,
@@ -167,6 +178,13 @@ func getExpectedPodSpec_DNSPolicy(DNSPolicy string) corev1.PodSpec {
 	spec := corev1.PodSpec{
 		DNSPolicy: corev1.DNSPolicy(DNSPolicy),
 	}
+	return spec
+}
+
+func getExpectedPodSpec_gateway_DNSPolicy(gateway string, DNS string, initImage string, sidecarImage string, DNSPolicy string) corev1.PodSpec {
+	spec := getExpectedPodSpec_gateway(gateway, DNS, initImage, sidecarImage)
+	spec.DNSPolicy = corev1.DNSPolicy(DNSPolicy)
+
 	return spec
 }
 
@@ -381,6 +399,23 @@ func TestGatewayPodMutator(t *testing.T) {
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
 				Spec: getExpectedPodSpec_DNSPolicy(testDNSPolicy),
+			},
+		},
+		"DNSPolicy, Gateway IP, init image ": {
+			cmdConfig: config.CmdConfig{
+				SetGatewayDefault: true,
+				Gateway:           testGatewayIP,
+				DNS:               testDNSIP,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
+				DNSPolicy:         testDNSPolicy,
+			},
+			obj: &corev1.Pod{},
+			expObj: &corev1.Pod{
+				Spec: getExpectedPodSpec_gateway_DNSPolicy(testGatewayIP, testDNSIP, testInitImage, "", testDNSPolicy),
 			},
 		},
 	}
