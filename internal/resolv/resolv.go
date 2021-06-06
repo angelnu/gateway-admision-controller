@@ -75,7 +75,7 @@ func parse(f io.Reader) (Resolver, error) {
 		case "options":
 			for _, s := range rest {
 				s := strings.TrimSpace(s)
-				s_parts := strings.SplitN(line, ":", 2)
+				s_parts := strings.SplitN(s, ":", 2)
 
 				option := ResolverOption{
 					Name: s_parts[0],
