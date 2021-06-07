@@ -93,7 +93,7 @@ type gatewayPodMutatorCfg struct {
 	logger    log.Logger
 }
 
-func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
+func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
 
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
@@ -147,6 +147,10 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 					if len(searchParts) > 2 && searchParts[1] == "svc" {
 						if pod.Namespace != "" {
 							searchParts[0] = pod.Namespace
+							cfg.logger.Infof("corrected namespace in search to POD namespace")
+						} else if adReview.Namespace != "" {
+							searchParts[0] = adReview.Namespace
+							cfg.logger.Infof("corrected namespace in search to adReview namespace")
 						} else {
 							cfg.logger.Warningf("Empty namespace - not changing search domainss")
 						}
