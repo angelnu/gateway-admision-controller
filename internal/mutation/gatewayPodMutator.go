@@ -145,7 +145,11 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, _ *kwhmodel
 				for i := range copied.Searches {
 					searchParts := strings.Split(copied.Searches[i], ".")
 					if len(searchParts) > 2 && searchParts[1] == "svc" {
-						searchParts[0] = pod.Namespace
+						if pod.Namespace != "" {
+							searchParts[0] = pod.Namespace
+						} else {
+							cfg.logger.Warningf("Empty namespace - not changing search domainss")
+						}
 						copied.Searches[i] = strings.Join(searchParts, ".")
 					}
 				}
