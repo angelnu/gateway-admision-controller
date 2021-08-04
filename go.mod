@@ -8,8 +8,8 @@ require (
 	github.com/slok/kubewebhook/v2 v2.1.0
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
-	k8s.io/api v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/api v0.22.0
+	k8s.io/apimachinery v0.22.0
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.21.3
