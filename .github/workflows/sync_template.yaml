@@ -9,12 +9,12 @@ jobs:
   sync-with-template:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         path: source
         repository: k8s-at-home/template-container-image
         fetch-depth: 1
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         path: target
         fetch-depth: 1
