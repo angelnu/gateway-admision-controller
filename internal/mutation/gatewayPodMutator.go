@@ -188,6 +188,8 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 			}
 
 			// Create init container
+			initContainerRunAsUser := int64(0) // Run init container as root
+			initContainerRunAsNonRoot := false
 			container := corev1.Container{
 				Name:    GATEWAY_INIT_CONTAINER_NAME,
 				Image:   cfg.cmdConfig.InitImage,
@@ -231,6 +233,8 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 						},
 						Drop: []corev1.Capability{},
 					},
+					RunAsUser:    &initContainerRunAsUser,
+					RunAsNonRoot: &initContainerRunAsNonRoot,
 				},
 				// Stdin:                    false,
 				// StdinOnce:                false,
@@ -258,7 +262,9 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 				}
 			}
 
-			// Create init container
+			// Create sidecar container
+			var sidecarContainerRunAsUser = int64(0) // Run init container as root
+			var sidecarContainerRunAsNonRoot = false
 			container := corev1.Container{
 				Name:    GATEWAY_SIDECAR_CONTAINER_NAME,
 				Image:   cfg.cmdConfig.SidecarImage,
@@ -302,6 +308,8 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 						},
 						Drop: []corev1.Capability{},
 					},
+					RunAsUser:    &sidecarContainerRunAsUser,
+					RunAsNonRoot: &sidecarContainerRunAsNonRoot,
 				},
 				// Stdin:                    false,
 				// StdinOnce:                false,
