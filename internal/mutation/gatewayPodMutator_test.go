@@ -104,6 +104,8 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 	}
 
 	var containers []corev1.Container
+	var sidecarContainerRunAsUser = int64(0) // Run init container as root
+	var sidecarContainerRunAsNonRoot = false
 	if sidecarImage != "" {
 		containers = append(containers, corev1.Container{
 			Name:    mutator.GATEWAY_SIDECAR_CONTAINER_NAME,
@@ -135,6 +137,8 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 					},
 					Drop: []corev1.Capability{},
 				},
+				RunAsUser:    &sidecarContainerRunAsUser,
+				RunAsNonRoot: &sidecarContainerRunAsNonRoot,
 			},
 			VolumeMounts: []corev1.VolumeMount{
 				corev1.VolumeMount{
