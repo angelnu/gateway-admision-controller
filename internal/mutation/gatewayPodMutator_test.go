@@ -87,6 +87,7 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 				Capabilities: &corev1.Capabilities{
 					Add: []corev1.Capability{
 						"NET_ADMIN",
+						"NET_RAW",
 					},
 					Drop: []corev1.Capability{},
 				},
