@@ -230,6 +230,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 					Capabilities: &corev1.Capabilities{
 						Add: []corev1.Capability{
 							"NET_ADMIN",
+							"NET_RAW",
 						},
 						Drop: []corev1.Capability{},
 					},
@@ -305,6 +306,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 					Capabilities: &corev1.Capabilities{
 						Add: []corev1.Capability{
 							"NET_ADMIN",
+							"NET_RAW",
 						},
 						Drop: []corev1.Capability{},
 					},
