@@ -143,14 +143,15 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 
 				//fix the first search to match the pod namespace
 				for i := range copied.Searches {
+					cfg.logger.Debugf("DNS search entry BEFORE: %s", copied.Searches[i])
 					searchParts := strings.Split(copied.Searches[i], ".")
 					if len(searchParts) > 2 && searchParts[1] == "svc" {
 						if pod.Namespace != "" {
 							searchParts[0] = pod.Namespace
-							cfg.logger.Infof("corrected namespace in search to POD namespace")
+							cfg.logger.Infof("Corrected namespace in search to POD namespace")
 						} else if adReview.Namespace != "" {
 							searchParts[0] = adReview.Namespace
-							cfg.logger.Infof("corrected namespace in search to adReview namespace")
+							cfg.logger.Infof("Corrected namespace in search to adReview namespace")
 						} else {
 							cfg.logger.Warningf("Empty namespace - not changing search domainss")
 						}
@@ -161,6 +162,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 						// https://github.com/angelnu/gateway-admision-controller/issues/54
 						copied.Searches[i] = "."
 					}
+					cfg.logger.Debugf("DNS search entry AFTER: %s", copied.Searches[i])
 				}
 
 				pod.Spec.DNSConfig.Searches = copied.Searches
