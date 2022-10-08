@@ -157,13 +157,22 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 						}
 						copied.Searches[i] = strings.Join(searchParts, ".")
 					}
-					if len(copied.Searches[i]) == 0 {
-						// circumvention for k3s 1.25
-						// https://github.com/angelnu/gateway-admision-controller/issues/54
-						copied.Searches[i] = "."
-					}
 					cfg.logger.Debugf("DNS search entry AFTER: %s", copied.Searches[i])
 				}
+
+				k := 0
+				for i := range copied.Searches {
+					if len(copied.Searches[i]) == 0 || copied.Searches[i] == "." {
+						// circumvention for k3s 1.25
+						// https://github.com/angelnu/gateway-admision-controller/issues/54
+						// Do not copy
+					} else {
+						copied.Searches[k] = copied.Searches[i]
+						k++
+					}
+				}
+				copied.Searches = copied.Searches[:k]
+				cfg.logger.Debugf("DNS searches: %v", copied.Searches)
 
 				pod.Spec.DNSConfig.Searches = copied.Searches
 				pod.Spec.DNSConfig.Options = copied.Options
