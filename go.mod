@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/oklog/run v1.1.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/slok/kubewebhook/v2 v2.3.0
+	github.com/slok/kubewebhook/v2 v2.4.0
 	github.com/stretchr/testify v1.8.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	k8s.io/api v0.25.3
@@ -31,7 +31,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/client-go v0.23.5 // indirect
+	k8s.io/client-go v0.24.0 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
