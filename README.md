@@ -1,6 +1,6 @@
 # gateway admision controller
 
-Based on the [k8s-at-home container template](https://github.com/k8s-at-home/template-container-image)
+Originally based on the [k8s-at-home container template](https://github.com/k8s-at-home/template-container-image)
 and the [example for Kubewebhook](https://github.com/slok/k8s-webhook-example/), this
 [admision webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
 changes the default gateway and, optionally, the DNS of processed pods. It does so by adding an
@@ -14,7 +14,6 @@ The [.github](.github) folder will get PRs from this template so you can apply t
 ## Prereqs
 
 You need to create the following secrets (not needed within the k8s-at-home org - there we use org-wide secrets):
-- WORKFLOW_REPO_SYNC_TOKEN # Needed to do PRs that update the workflows
 - GHCR_USERNAME            # Needed to upload container to the Github Container Registry
 - GHCR_TOKEN               # Needed to upload container to the Github Container Registry
 
