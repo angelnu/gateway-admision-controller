@@ -20,7 +20,7 @@ RUN  CCGO_ENABLED=0 go test -v ./...
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 # debug tag adds a shell (not recommended for prod)
-FROM gcr.io/distroless/static:nonroot@sha256:d8afc7d6973f357162e2283551cf3347b2bb847a03d24510ee837f289505f8e3
+FROM gcr.io/distroless/static:nonroot@sha256:ed05c7a5d67d6beebeba19c6b9082a5513d5f9c3e22a883b9dc73ec39ba41c04
 WORKDIR /
 COPY --from=build /workspace/app /app/app
 USER nonroot:nonroot
