@@ -31,7 +31,7 @@ type GatewayPodMutator interface {
 	GatewayPodMutator(ctx context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error)
 }
 
-// NewLabelMarker returns a new marker that will mark with labels.
+// NewGatewayPodMutator returns a new marker that will mark with labels.
 func NewGatewayPodMutator(cmdConfig config.CmdConfig, logger log.Logger) (GatewayPodMutator, error) {
 
 	logger.Infof("Command config is %#v", cmdConfig)
