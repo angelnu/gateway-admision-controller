@@ -21,6 +21,7 @@ const (
 	GATEWAY_INIT_CONTAINER_NAME    = "gateway-init"
 	GATEWAY_SIDECAR_CONTAINER_NAME = "gateway-sidecar"
 	GATEWAY_CONFIGMAP_VOLUME_NAME  = "gateway-configmap"
+	GATEWAY_SERVICE_ANNOTATION     = "pod-gateway.k8s-at-home.com/gatewayServiceName"
 )
 
 var (
@@ -31,7 +32,7 @@ type GatewayPodMutator interface {
 	GatewayPodMutator(ctx context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error)
 }
 
-// NewLabelMarker returns a new marker that will mark with labels.
+// NewGatewayPodMutator returns a new marker that will mark with labels.
 func NewGatewayPodMutator(cmdConfig config.CmdConfig, logger log.Logger) (GatewayPodMutator, error) {
 
 	logger.Infof("Command config is %#v", cmdConfig)
@@ -118,6 +119,11 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	gatewayServiceName, ok := obj.GetAnnotations()[GATEWAY_SERVICE_ANNOTATION]
+	if !ok {
+		gatewayServiceName = cfg.cmdConfig.Gateway
 	}
 
 	if setGateway {
@@ -217,7 +223,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 				Env: []corev1.EnvVar{
 					{
 						Name:  "gateway",
-						Value: cfg.cmdConfig.Gateway,
+						Value: gatewayServiceName,
 					},
 					{
 						Name:  "DNS",
@@ -293,7 +299,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 				Env: []corev1.EnvVar{
 					{
 						Name:  "gateway",
-						Value: cfg.cmdConfig.Gateway,
+						Value: gatewayServiceName,
 					},
 					{
 						Name:  "DNS",
