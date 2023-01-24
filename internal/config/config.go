@@ -8,28 +8,30 @@ import (
 
 // CmdConfig represents the configuration of the command.
 type CmdConfig struct {
-	Debug                bool
-	Development          bool
-	SetGatewayDefault    bool
-	WebhookListenAddr    string
-	MetricsListenAddr    string
-	MetricsPath          string
-	TLSCertFilePath      string
-	TLSKeyFilePath       string
-	Gateway              string
-	DNS                  string
-	DNSPolicy            string
-	SetGatewayLabel      string
-	SetGatewayAnnotation string
-	InitImage            string
-	InitImagePullPol     string
-	InitCmd              string
-	InitMountPoint       string
-	SidecarImage         string
-	SidecarImagePullPol  string
-	SidecarCmd           string
-	SidecarMountPoint    string
-	ConfigmapName        string
+	Debug                     bool
+	Development               bool
+	SetGatewayDefault         bool
+	WebhookListenAddr         string
+	MetricsListenAddr         string
+	MetricsPath               string
+	TLSCertFilePath           string
+	TLSKeyFilePath            string
+	Gateway                   string
+	DNS                       string
+	DNSPolicy                 string
+	SetGatewayLabel           string
+	SetGatewayLabelValue      string
+	SetGatewayAnnotation      string
+	SetGatewayAnnotationValue string
+	InitImage                 string
+	InitImagePullPol          string
+	InitCmd                   string
+	InitMountPoint            string
+	SidecarImage              string
+	SidecarImagePullPol       string
+	SidecarCmd                string
+	SidecarMountPoint         string
+	ConfigmapName             string
 }
 
 var (
@@ -55,7 +57,9 @@ func NewCmdConfig() (*CmdConfig, error) {
 
 	app.Flag("setGatewayDefault", "Set gateway by default in absence of label/annotation").BoolVar(&c.SetGatewayDefault)
 	app.Flag("setGatewayLabel", "Set gateway for pods with this label set to 'true'").StringVar(&c.SetGatewayLabel)
+	app.Flag("setGatewayLabelValue", "Set gateway for pods with label set to this value").StringVar(&c.SetGatewayLabelValue)
 	app.Flag("setGatewayAnnotation", "Set gateway for pods with this annotation set to 'true'").StringVar(&c.SetGatewayAnnotation)
+	app.Flag("setGatewayAnnotationValue", "Set gateway for pods with annotation set to this value").StringVar(&c.SetGatewayAnnotationValue)
 
 	app.Flag("initImage", "Init container image").StringVar(&c.InitImage)
 	app.Flag("initImagePullPol", "Init container pull policy").StringVar(&c.InitImagePullPol)

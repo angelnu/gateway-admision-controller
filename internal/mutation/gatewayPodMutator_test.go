@@ -368,7 +368,62 @@ func TestGatewayPodMutator(t *testing.T) {
 				Spec: getExpectedPodSpec_gateway(testGatewayIP, "", testInitImage, ""),
 			},
 		},
-		"setGatewayAnnotation='setGateway' - it should be a NOP since annotation is true": {
+		"setGatewayLabelValue='foo' - it should set gateway since label value matches the config": {
+			cmdConfig: config.CmdConfig{
+				Gateway:              testGatewayIP,
+				SetGatewayDefault:    true,
+				InitImage:            testInitImage,
+				InitCmd:              testInitCmd,
+				InitImagePullPol:     testInitImagePullPol,
+				InitMountPoint:       testInitMountPoint,
+				ConfigmapName:        testConfigmapName,
+				SetGatewayLabel:      "setGateway",
+				SetGatewayLabelValue: "foo",
+			},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"setGateway": "foo",
+					},
+				},
+			},
+			expObj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"setGateway": "foo",
+					},
+				},
+				Spec: getExpectedPodSpec_gateway(testGatewayIP, "", testInitImage, ""),
+			},
+		},
+		"setGatewayLabelValue='foo' - it should be a NOP since label value does not match the config": {
+			cmdConfig: config.CmdConfig{
+				Gateway:              testGatewayIP,
+				SetGatewayDefault:    true,
+				InitImage:            testInitImage,
+				InitCmd:              testInitCmd,
+				InitImagePullPol:     testInitImagePullPol,
+				InitMountPoint:       testInitMountPoint,
+				ConfigmapName:        testConfigmapName,
+				SetGatewayLabel:      "setGateway",
+				SetGatewayLabelValue: "foo",
+			},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"setGateway": "bar",
+					},
+				},
+			},
+			expObj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"setGateway": "bar",
+					},
+				},
+			},
+		},
+		"setGatewayAnnotation='setGateway' - it should be a NOP since annotation is false": {
 			cmdConfig: config.CmdConfig{
 				Gateway:              testGatewayIP,
 				SetGatewayDefault:    true,
@@ -394,7 +449,7 @@ func TestGatewayPodMutator(t *testing.T) {
 				},
 			},
 		},
-		"setGatewayAnnotation='setGateway' - it should set gateway since annotation is false": {
+		"setGatewayAnnotation='setGateway' - it should set gateway since annotation is true": {
 			cmdConfig: config.CmdConfig{
 				Gateway:              testGatewayIP,
 				SetGatewayDefault:    true,
@@ -419,6 +474,61 @@ func TestGatewayPodMutator(t *testing.T) {
 					},
 				},
 				Spec: getExpectedPodSpec_gateway(testGatewayIP, "", testInitImage, ""),
+			},
+		},
+		"setGatewayAnnotationValue='foo' - it should set gateway since annotation value matches the config": {
+			cmdConfig: config.CmdConfig{
+				Gateway:                   testGatewayIP,
+				SetGatewayDefault:         true,
+				InitImage:                 testInitImage,
+				InitCmd:                   testInitCmd,
+				InitImagePullPol:          testInitImagePullPol,
+				InitMountPoint:            testInitMountPoint,
+				ConfigmapName:             testConfigmapName,
+				SetGatewayAnnotation:      "setGateway",
+				SetGatewayAnnotationValue: "foo",
+			},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"setGateway": "foo",
+					},
+				},
+			},
+			expObj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"setGateway": "foo",
+					},
+				},
+				Spec: getExpectedPodSpec_gateway(testGatewayIP, "", testInitImage, ""),
+			},
+		},
+		"setGatewayAnnotationValue='foo' - it should be a NOP since annotation value does not match the config": {
+			cmdConfig: config.CmdConfig{
+				Gateway:                   testGatewayIP,
+				SetGatewayDefault:         true,
+				InitImage:                 testInitImage,
+				InitCmd:                   testInitCmd,
+				InitImagePullPol:          testInitImagePullPol,
+				InitMountPoint:            testInitMountPoint,
+				ConfigmapName:             testConfigmapName,
+				SetGatewayAnnotation:      "setGateway",
+				SetGatewayAnnotationValue: "foo",
+			},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"setGateway": "bar",
+					},
+				},
+			},
+			expObj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"setGateway": "bar",
+					},
+				},
 			},
 		},
 		"DNSPolicy": {
@@ -472,6 +582,69 @@ func TestGatewayPodMutator(t *testing.T) {
 			require.NoError(err)
 
 			assert.Equal(test.expObj, test.obj)
+		})
+	}
+}
+
+func TestGatewayPodMutatorReturnsError(t *testing.T) {
+
+	tests := map[string]struct {
+		cmdConfig config.CmdConfig
+		obj       metav1.Object
+	}{
+		"setGatewayLabel='setGateway' - it should return error as the value is not a valid boolean": {
+			cmdConfig: config.CmdConfig{
+				Gateway:           testGatewayIP,
+				SetGatewayDefault: true,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				ConfigmapName:     testConfigmapName,
+				SetGatewayLabel:   "setGateway",
+			},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"setGateway": "notbool",
+					},
+				},
+			},
+		},
+		"setGatewayAnnotation='setGateway' - it should return error as the value is not a valid boolean": {
+			cmdConfig: config.CmdConfig{
+				Gateway:              testGatewayIP,
+				SetGatewayDefault:    true,
+				InitImage:            testInitImage,
+				InitCmd:              testInitCmd,
+				InitImagePullPol:     testInitImagePullPol,
+				InitMountPoint:       testInitMountPoint,
+				ConfigmapName:        testConfigmapName,
+				SetGatewayAnnotation: "setGateway",
+			},
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"setGateway": "notbool",
+					},
+				},
+			},
+		},
+	}
+
+	logrusLog := logrus.New()
+	logrusLogEntry := logrus.NewEntry(logrusLog).WithField("app", "gatewayPodMutator Test for errors")
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			m, err := mutator.NewGatewayPodMutator(test.cmdConfig, log.NewLogrus(logrusLogEntry).WithKV(log.KV{"test": name}))
+			require.NoError(err)
+
+			_, err = m.GatewayPodMutator(context.TODO(), nil, test.obj)
+			assert.Error(err)
 		})
 	}
 }
