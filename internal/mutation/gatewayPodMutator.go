@@ -104,19 +104,47 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 	setGateway := cfg.cmdConfig.SetGatewayDefault
 	var err error
 
-	//Check if label excludes this pod
+	// The SetGatewayLabel/SetGatewayAnnotation config controls the label/annotation key of which the value by default
+	// must be 'true' in the pod, in order to inject the default gateway.
+	// Additionally, when configured a value for the setGatewayLabelValue/setGatewayAnnotationValue setting, the value
+	// of the label/annotation specified by SetGatewayLabel/SetGatewayAnnotation must match the configured value
+	// - instead of the default 'true'.
+
+	// If the pod has the configured label.
 	if val, ok := pod.GetLabels()[cfg.cmdConfig.SetGatewayLabel]; cfg.cmdConfig.SetGatewayLabel != "" && ok {
-		setGateway, err = strconv.ParseBool(val)
-		if err != nil {
-			return nil, err
+
+		// If the label requires a specific value, it must match.
+		if setGateway = false; cfg.cmdConfig.SetGatewayLabelValue != "" {
+			if val == cfg.cmdConfig.SetGatewayLabelValue {
+				setGateway = true
+			}
+
+			// Otherwise it must be true.
+		} else {
+
+			setGateway, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	//Check if annotations excludes this pod
+	// If the pod has the configured annotation.
 	if val, ok := pod.GetAnnotations()[cfg.cmdConfig.SetGatewayAnnotation]; cfg.cmdConfig.SetGatewayAnnotation != "" && ok {
-		setGateway, err = strconv.ParseBool(val)
-		if err != nil {
-			return nil, err
+
+		// If the annotation requires a specific value, it must match.
+		if setGateway = false; cfg.cmdConfig.SetGatewayAnnotationValue != "" {
+			if val == cfg.cmdConfig.SetGatewayAnnotationValue {
+				setGateway = true
+			}
+
+			// Otherwise it must be true.
+		} else {
+
+			setGateway, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
