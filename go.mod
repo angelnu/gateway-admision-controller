@@ -7,7 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slok/kubewebhook/v2 v2.5.0
 	github.com/stretchr/testify v1.8.1
-	gopkg.in/alecthomas/kingpin.v2 v2.3.1
+	gopkg.in/alecthomas/kingpin.v2 v2.3.2
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 )
