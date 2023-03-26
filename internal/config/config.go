@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 
-	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/alecthomas/kingpin/v2"
 )
 
 // CmdConfig represents the configuration of the command.
