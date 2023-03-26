@@ -21,7 +21,7 @@ import (
 const (
 	testGatewayIP           = "1.2.3.4"
 	testGatewayName         = "example.com"
-	testDNSIP               = "5.6.7.8"
+	testDNSIP               = "5.6.7.8,9.10.11.12"
 	testDNSName             = "www.example.com"
 	testDNSPolicy           = "None"
 	testInitImage           = "initImg"
@@ -36,12 +36,25 @@ const (
 	testNamespace           = "myNameSpace"
 )
 
-func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, sidecarImage string) corev1.PodSpec {
+func resolveDNSConfigValue(DNSList string) ([]string, error) {
+	var resolvedIPs []string
+	if DNSList != "" {
+		DNSServers := strings.Split(DNSList, ",")
+		for _, DNSServer := range DNSServers {
+			resolvedServerIPs, err := net.LookupIP(DNSServer)
+			if err != nil {
+				return nil, err
+			}
+			resolvedIPs = append(resolvedIPs, resolvedServerIPs[0].String())
+		}
+	}
+	return resolvedIPs, nil
+}
 
-	var DNS_IP string
-	if DNS != "" {
-		DNS_IP_obj, _ := net.LookupIP(DNS)
-		DNS_IP = DNS_IP_obj[0].String()
+func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, sidecarImage string) corev1.PodSpec {
+	DNS_ips, err := resolveDNSConfigValue(DNS)
+	if err != nil {
+		panic(err)
 	}
 
 	k8s_DNS_config, _ := resolv.Config()
@@ -74,8 +87,8 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 					Value: DNS,
 				},
 				{
-					Name:  "DNS_ip",
-					Value: DNS_IP,
+					Name:  "DNS_ips",
+					Value: strings.Join(DNS_ips, ","),
 				},
 				{
 					Name:  "K8S_DNS_ips",
@@ -122,8 +135,8 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 					Value: DNS,
 				},
 				{
-					Name:  "DNS_ip",
-					Value: DNS_IP,
+					Name:  "DNS_ips",
+					Value: strings.Join(DNS_ips, ","),
 				},
 				{
 					Name:  "K8S_DNS_ips",
@@ -159,7 +172,7 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 
 	if DNS != "" {
 		spec.DNSConfig = &corev1.PodDNSConfig{
-			Nameservers: []string{DNS_IP},
+			Nameservers: DNS_ips,
 		}
 
 		if testDNSPolicy == "None" {
@@ -193,13 +206,14 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 	return spec
 }
 
-func getExpectedPodSpec_DNS(DNS string) corev1.PodSpec {
-	DNSIPs, _ := net.LookupIP(DNS)
+func getExpectedPodSpec_DNS(DNSList string) corev1.PodSpec {
+	resolvedIPs, err := resolveDNSConfigValue(DNSList)
+	if err != nil {
+		panic(err)
+	}
 	spec := corev1.PodSpec{
 		DNSConfig: &corev1.PodDNSConfig{
-			Nameservers: []string{
-				DNSIPs[0].String(),
-			},
+			Nameservers: resolvedIPs,
 		},
 	}
 	return spec
