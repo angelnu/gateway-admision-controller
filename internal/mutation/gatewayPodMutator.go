@@ -45,10 +45,13 @@ func NewGatewayPodMutator(cmdConfig config.CmdConfig, logger log.Logger) (Gatewa
 	}
 
 	if cmdConfig.DNS != "" {
-		//Check we got a valid Gateway
-		_, error := net.LookupIP(cmdConfig.DNS)
-		if error != nil {
-			return nil, error
+		//Check we got valid DNS hosts
+		DNSServers := strings.Split(cmdConfig.DNS, ",")
+		for _, DNSServer := range DNSServers {
+			_, err := net.LookupIP(DNSServer)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -82,9 +85,17 @@ func (cfg gatewayPodMutatorCfg) getGatewayIP() (string, error) {
 	return getGatewayIPs[0].String(), error
 }
 
-func (cfg gatewayPodMutatorCfg) getDNSIP() (string, error) {
-	DNSIPs, error := net.LookupIP(cfg.cmdConfig.DNS)
-	return DNSIPs[0].String(), error
+func (cfg gatewayPodMutatorCfg) getDNSIPs() ([]string, error) {
+	var resolvedIPs []string
+	DNSServers := strings.Split(cfg.cmdConfig.DNS, ",")
+	for _, DNSServer := range DNSServers {
+		resolvedServerIPs, error := net.LookupIP(DNSServer)
+		if error != nil {
+			return nil, error
+		}
+		resolvedIPs = append(resolvedIPs, resolvedServerIPs[0].String())
+	}
+	return resolvedIPs, nil
 }
 
 type gatewayPodMutatorCfg struct {
@@ -151,16 +162,16 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 	if setGateway {
 
 		var error error
-		var DNS_IP string
+		var DNS_IPs []string
 		if cfg.cmdConfig.DNS != "" {
 			//Add DNS
-			DNS_IP, error = cfg.getDNSIP()
+			DNS_IPs, error = cfg.getDNSIPs()
 			if error != nil {
 				return nil, error
 			}
 
 			pod.Spec.DNSConfig = &corev1.PodDNSConfig{
-				Nameservers: []string{DNS_IP},
+				Nameservers: DNS_IPs,
 				// Searches: []string{},
 				// Options:  []corev1.PodDNSConfigOption{},
 			}
@@ -252,8 +263,8 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 						Value: cfg.cmdConfig.DNS,
 					},
 					{
-						Name:  "DNS_ip",
-						Value: DNS_IP,
+						Name:  "DNS_ips",
+						Value: strings.Join(DNS_IPs, ","),
 					},
 					{
 						Name:  "K8S_DNS_ips",
@@ -328,8 +339,8 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 						Value: cfg.cmdConfig.DNS,
 					},
 					{
-						Name:  "DNS_ip",
-						Value: DNS_IP,
+						Name:  "DNS_ips",
+						Value: strings.Join(DNS_IPs, ","),
 					},
 					{
 						Name:  "K8S_DNS_ips",
