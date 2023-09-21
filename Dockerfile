@@ -1,4 +1,4 @@
-FROM golang:1.20@sha256:af691231760fbe0895b8175701a2c12c57f49ebdf9badcc150e1c0ecf684a035 AS build
+FROM golang:1.20@sha256:ab4b998d075cb6158c7cabf6b06cb329fd518c7fc2c71eca4f1c63f1874609a1 AS build
 
 WORKDIR /workspace
 ENV GO111MODULE=on
