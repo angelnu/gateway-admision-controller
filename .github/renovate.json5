@@ -2,6 +2,7 @@
   extends: [
     "github>angelnu/renovate-config",
     "github>angelnu/renovate-config:automerge-github-actions",
+    "github>angelnu/renovate-config:automerge-gomod",
   ],  
   platform:     "github",
   username:     "angelnu-bot[bot]",
