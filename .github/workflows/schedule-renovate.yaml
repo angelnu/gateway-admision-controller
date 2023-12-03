@@ -15,6 +15,9 @@ on:
         required: false
   schedule:
     - cron: "0 * * * *"
+  pull_request:
+    types:
+      - edited
   push:
     branches:
       - main
