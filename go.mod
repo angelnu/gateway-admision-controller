@@ -2,7 +2,7 @@ module github.com/k8s-at-home/gateway-admision-controller
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.23.5
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
