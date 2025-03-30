@@ -9,12 +9,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/k8s-at-home/gateway-admision-controller/internal/resolv"
+	"github.com/angelnu/gateway-admision-controller/internal/resolv"
 	kwhmodel "github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
 
-	"github.com/k8s-at-home/gateway-admision-controller/internal/config"
-	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
+	"github.com/angelnu/gateway-admision-controller/internal/config"
+	"github.com/angelnu/gateway-admision-controller/internal/log"
 )
 
 const (

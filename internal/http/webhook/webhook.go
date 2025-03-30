@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/k8s-at-home/gateway-admision-controller/internal/config"
-	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
+	"github.com/angelnu/gateway-admision-controller/internal/config"
+	"github.com/angelnu/gateway-admision-controller/internal/log"
 )
 
 // Config is the handler configuration.

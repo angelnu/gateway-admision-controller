@@ -12,10 +12,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/k8s-at-home/gateway-admision-controller/internal/config"
-	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
-	mutator "github.com/k8s-at-home/gateway-admision-controller/internal/mutation"
-	"github.com/k8s-at-home/gateway-admision-controller/internal/resolv"
+	"github.com/angelnu/gateway-admision-controller/internal/config"
+	"github.com/angelnu/gateway-admision-controller/internal/log"
+	mutator "github.com/angelnu/gateway-admision-controller/internal/mutation"
+	"github.com/angelnu/gateway-admision-controller/internal/resolv"
 )
 
 const (

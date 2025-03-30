@@ -13,7 +13,7 @@ The [.github](.github) folder will get PRs from this template so you can apply t
 
 ## Prereqs
 
-You need to create the following secrets (not needed within the k8s-at-home org - there we use org-wide secrets):
+You need to create the following secrets:
 - GHCR_USERNAME            # Needed to upload container to the Github Container Registry
 - GHCR_TOKEN               # Needed to upload container to the Github Container Registry
 

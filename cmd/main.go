@@ -12,9 +12,9 @@ import (
 	"github.com/oklog/run"
 	"github.com/sirupsen/logrus"
 
-	cmdConfig "github.com/k8s-at-home/gateway-admision-controller/internal/config"
-	"github.com/k8s-at-home/gateway-admision-controller/internal/http/webhook"
-	"github.com/k8s-at-home/gateway-admision-controller/internal/log"
+	cmdConfig "github.com/angelnu/gateway-admision-controller/internal/config"
+	"github.com/angelnu/gateway-admision-controller/internal/http/webhook"
+	"github.com/angelnu/gateway-admision-controller/internal/log"
 )
 
 type config struct {
