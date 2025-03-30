@@ -28,4 +28,4 @@ USER nonroot:nonroot
 ENTRYPOINT ["/app/app"]
 
 ARG IMAGE_SOURCE
-LABEL org.opencontainers.image.source $IMAGE_SOURCE 
+LABEL org.opencontainers.image.source=$IMAGE_SOURCE 
