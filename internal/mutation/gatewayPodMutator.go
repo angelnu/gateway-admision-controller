@@ -374,7 +374,14 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 			}
 
 			//Add container to pod
-			pod.Spec.Containers = append(pod.Spec.Containers, container)
+			if cfg.cmdConfig.SidecarAsInit {
+				rs := corev1.ContainerRestartPolicyAlways
+				container.RestartPolicy = &rs
+
+				pod.Spec.InitContainers = append(pod.Spec.InitContainers, container)
+			} else {
+				pod.Spec.Containers = append(pod.Spec.Containers, container)
+			}
 		}
 
 		if cfg.cmdConfig.ConfigmapName != "" {
