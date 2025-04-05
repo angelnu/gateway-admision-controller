@@ -52,6 +52,10 @@ func resolveDNSConfigValue(DNSList string) ([]string, error) {
 }
 
 func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, sidecarImage string) corev1.PodSpec {
+	return getExpectedPodSpec_gateway_withinit(gateway, DNS, initImage, sidecarImage, false)
+}
+
+func getExpectedPodSpec_gateway_withinit(gateway string, DNS string, initImage string, sidecarImage string, sidecarAsInit bool) corev1.PodSpec {
 	DNS_ips, err := resolveDNSConfigValue(DNS)
 	if err != nil {
 		panic(err)
@@ -121,7 +125,7 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 	var sidecarContainerRunAsUser = int64(0) // Run init container as root
 	var sidecarContainerRunAsNonRoot = false
 	if sidecarImage != "" {
-		containers = append(containers, corev1.Container{
+		container := corev1.Container{
 			Name:    mutator.GATEWAY_SIDECAR_CONTAINER_NAME,
 			Image:   sidecarImage,
 			Command: []string{testSidecarCmd},
@@ -162,7 +166,17 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 					MountPath: testSidecarMountPoint,
 				},
 			},
-		})
+		}
+
+		//Add container to pod
+		if sidecarAsInit {
+			rs := corev1.ContainerRestartPolicyAlways
+			container.RestartPolicy = &rs
+
+			initContainers = append(initContainers, container)
+		} else {
+			containers = append(containers, container)
+		}
 	}
 
 	spec := corev1.PodSpec{
@@ -317,6 +331,38 @@ func TestGatewayPodMutator(t *testing.T) {
 			obj: &corev1.Pod{},
 			expObj: &corev1.Pod{
 				Spec: getExpectedPodSpec_gateway(testGatewayName, "", "", testSidecarImage),
+			},
+		},
+		"Gateway IP, sidecar image, as init": {
+			cmdConfig: config.CmdConfig{
+				SetGatewayDefault:   true,
+				Gateway:             testGatewayIP,
+				SidecarImage:        testSidecarImage,
+				SidecarCmd:          testSidecarCmd,
+				SidecarImagePullPol: testSidecarImagePullPol,
+				SidecarMountPoint:   testSidecarMountPoint,
+				SidecarAsInit:       true,
+				ConfigmapName:       testConfigmapName,
+			},
+			obj: &corev1.Pod{},
+			expObj: &corev1.Pod{
+				Spec: getExpectedPodSpec_gateway_withinit(testGatewayIP, "", "", testSidecarImage, true),
+			},
+		},
+		"Gateway name, sidecar image, as init": {
+			cmdConfig: config.CmdConfig{
+				SetGatewayDefault:   true,
+				Gateway:             testGatewayName,
+				SidecarImage:        testSidecarImage,
+				SidecarCmd:          testSidecarCmd,
+				SidecarImagePullPol: testSidecarImagePullPol,
+				SidecarMountPoint:   testSidecarMountPoint,
+				SidecarAsInit:       true,
+				ConfigmapName:       testConfigmapName,
+			},
+			obj: &corev1.Pod{},
+			expObj: &corev1.Pod{
+				Spec: getExpectedPodSpec_gateway_withinit(testGatewayName, "", "", testSidecarImage, true),
 			},
 		},
 		"DNS": {

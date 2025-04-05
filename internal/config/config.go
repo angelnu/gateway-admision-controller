@@ -31,6 +31,7 @@ type CmdConfig struct {
 	SidecarImagePullPol       string
 	SidecarCmd                string
 	SidecarMountPoint         string
+	SidecarAsInit             bool
 	ConfigmapName             string
 }
 
@@ -70,6 +71,7 @@ func NewCmdConfig() (*CmdConfig, error) {
 	app.Flag("sidecarImagePullPol", "Sidecar container pull policy").StringVar(&c.SidecarImagePullPol)
 	app.Flag("sidecarCmd", "Sidecard command to execute instead of container default").StringVar(&c.SidecarCmd)
 	app.Flag("sidecarMountPoint", "Mountpoint for configmap in sidecar container").StringVar(&c.SidecarMountPoint)
+	app.Flag("sidecarAsInit", "Create the sidecar as an init container. Requires Kubernetes v1.29").BoolVar(&c.SidecarAsInit)
 
 	app.Flag("configmapName", "Name of the configmap to attach to containers").StringVar(&c.ConfigmapName)
 
