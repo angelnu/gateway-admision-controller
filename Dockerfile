@@ -1,4 +1,4 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24@sha256:8d9e57c5a6f2bede16fe674c16149eee20db6907129e02c4ad91ce5a697a4012 AS build
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24@sha256:cb7fdea164b91136192c2f1688172a88da56fd3fac88d0795b8e8ed975fd2966 AS build
 
 WORKDIR /workspace
 ENV GO111MODULE=on
