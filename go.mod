@@ -2,16 +2,16 @@ module github.com/angelnu/gateway-admision-controller
 
 go 1.24.0
 
-toolchain go1.24.2
+toolchain go1.25.4
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
-	github.com/oklog/run v1.1.0
+	github.com/oklog/run v1.2.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/kubewebhook/v2 v2.7.0
-	github.com/stretchr/testify v1.10.0
-	k8s.io/api v0.33.0
-	k8s.io/apimachinery v0.33.0
+	github.com/stretchr/testify v1.11.1
+	k8s.io/api v0.35.0
+	k8s.io/apimachinery v0.35.0
 )
 
 require (
