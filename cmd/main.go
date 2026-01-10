@@ -91,6 +91,11 @@ func runApp() error {
 					return server.ListenAndServe()
 				}
 
+				if info, err := os.Stat(cfg.TLSCertFilePath); err != nil || info.Size() == 0 {
+					logger.Errorf("Certificate file is missing or empty: %v", err)
+					return err
+				}
+
 				logger.Infof("https server listening...")
 				return server.ListenAndServeTLS(cfg.TLSCertFilePath, cfg.TLSKeyFilePath)
 			},
