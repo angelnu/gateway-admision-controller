@@ -7,7 +7,7 @@ toolchain go1.25.5
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/oklog/run v1.2.0
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/slok/kubewebhook/v2 v2.7.0
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.0
