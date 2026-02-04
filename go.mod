@@ -2,7 +2,7 @@ module github.com/angelnu/gateway-admision-controller
 
 go 1.25.0
 
-toolchain go1.25.6
+toolchain go1.25.7
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
