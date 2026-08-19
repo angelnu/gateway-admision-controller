@@ -9,7 +9,7 @@ require (
 	github.com/oklog/run v1.2.0
 	github.com/sirupsen/logrus v1.10.1
 	github.com/slok/kubewebhook/v2 v2.7.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 	k8s.io/api v0.36.3
 	k8s.io/apimachinery v0.36.3
 )
