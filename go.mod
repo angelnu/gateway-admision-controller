@@ -10,8 +10,8 @@ require (
 	github.com/sirupsen/logrus v1.10.1
 	github.com/slok/kubewebhook/v2 v2.7.0
 	github.com/stretchr/testify v1.12.1
-	k8s.io/api v0.37.0
-	k8s.io/apimachinery v0.37.0
+	k8s.io/api v0.37.1
+	k8s.io/apimachinery v0.37.1
 )
 
 require (
